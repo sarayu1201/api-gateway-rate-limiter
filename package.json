@@ -1,0 +1,26 @@
+{
+  "name": "api-gateway-rate-limiter",
+  "version": "1.0.0",
+  "description": "A resilient API Gateway with advanced rate limiting and circuit breaker pattern",
+  "main": "src/gateway/main.js",
+  "scripts": {
+    "start": "node src/gateway/main.js",
+    "mock-service": "node src/mock_service/app.js",
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration --forceExit"
+  },
+  "keywords": ["API Gateway", "Rate Limiting", "Circuit Breaker", "Redis"],
+  "author": "Vinaya Sarayu",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "redis": "^4.6.5",
+    "axios": "^1.3.4",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "supertest": "^6.3.3"
+  }
+}
