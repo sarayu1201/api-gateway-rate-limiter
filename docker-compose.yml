@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:6-alpine
@@ -8,29 +6,24 @@ services:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 1s
-      timeout: 3s
-      retries: 5
-    networks:
-      - gateway-network
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   mock-service:
     build:
       context: .
       dockerfile: Dockerfile.mock
     container_name: mock-service
-    environment:
-      MOCK_SERVICE_FAIL_RATIO: ${MOCK_SERVICE_FAIL_RATIO:-0.3}
-      MOCK_SERVICE_DELAY_MS: ${MOCK_SERVICE_DELAY_MS:-0}
     ports:
-      - "8081:8081"
+      - "4000:4000"
+    depends_on:
+      - redis
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-    networks:
-      - gateway-network
 
   gateway:
     build:
@@ -38,31 +31,18 @@ services:
       dockerfile: Dockerfile
     container_name: gateway
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_DB: 0
-      DOWNSTREAM_SERVICE_URL: http://mock-service:8081
-      DOWNSTREAM_SERVICE_TIMEOUT_SECONDS: ${DOWNSTREAM_SERVICE_TIMEOUT_SECONDS:-5}
-      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
-      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-10}
-      CIRCUIT_BREAKER_FAILURE_THRESHOLD: ${CIRCUIT_BREAKER_FAILURE_THRESHOLD:-3}
-      CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS: ${CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS:-30}
-      NODE_ENV: ${NODE_ENV:-production}
+      - GATEWAY_PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SERVICE_A_URL=http://mock-service:4000
+      - RATE_LIMIT_WINDOW_SECONDS=60
+      - RATE_LIMIT_MAX_REQUESTS=10
+      - CB_FAILURE_THRESHOLD=5
+      - CB_RESET_TIMEOUT_MS=30000
     depends_on:
       redis:
         condition: service_healthy
       mock-service:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - gateway-network
-
-networks:
-  gateway-network:
-    driver: bridge
